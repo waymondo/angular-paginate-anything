@@ -47,7 +47,7 @@
           linkGroupSize: '=?',
           reloadPage: '=?',
           size: '=?',
-          passive: '@',
+          passive: '=?',
 
           // directive -> app communication only
           numPages: '=?',
