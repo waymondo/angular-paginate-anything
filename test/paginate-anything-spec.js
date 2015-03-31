@@ -27,7 +27,8 @@
     'link-group-size="linkGroupSize"',
     'server-limit="serverLimit"',
     'client-limit="clientLimit"',
-    'reload-page="reloadPage"'
+    'reload-page="reloadPage"',
+    'transform-response="transformResponse"'
   ].join(' ') + '/>';
 
   function finiteStringBackend(s, maxRange) {
@@ -862,6 +863,74 @@
     });
   });
 
+  describe('response transformations', function() {
+    var template = '<bgf-pagination ' + [
+      'collection="collection"', 'page="page"',
+      'per-page="perPage"', 'url="url"',
+      'transform-response="transformResponse"'
+    ].join(' ') + '></bgf-pagination>';
+
+    it('should perform admirably', function () {
+      $httpBackend.whenGET('/letters').respond(finiteStringBackend('abcd'));
+      scope.url     = '/letters';
+      scope.perPage = 2;
+      scope.page    = 0;
+      scope.transformResponse = function (data) { return data; };
+
+      $compile(template)(scope);
+
+      scope.$digest();
+      $httpBackend.flush();
+
+      expect(scope.page).toEqual(0);
+      expect(scope.collection).toEqual(['a', 'b']);
+    });
+
+    it('should transform data accordingly', function () {
+      $httpBackend.whenGET('/letters').respond(finiteStringBackend('abcd'));
+      scope.url     = '/letters';
+      scope.perPage = 2;
+      scope.page    = 0;
+      scope.transformResponse = function (oldData) { 
+        var newData = [];
+        angular.forEach(oldData, function (d) { 
+          newData.push(d.toUpperCase());
+        });
+        return newData;
+      };
+
+      $compile(template)(scope);
+
+      scope.$digest();
+      $httpBackend.flush();
+
+      expect(scope.page).toEqual(0);
+      expect(scope.collection).toEqual(['A', 'B']);
+    });
+
+    it('reloads data from page 0 when transformResponse changes', function () {
+      $httpBackend.expectGET('/letters').respond(finiteStringBackend('abcd'));
+      scope.url       = '/letters';
+      scope.perPage   = 2;
+      scope.page      = 1;
+      scope.transformResponse = function (foo) { return foo; };
+
+      $compile(template)(scope);
+
+      scope.$digest();
+      $httpBackend.flush();
+
+      $httpBackend.expectGET('/letters').respond(finiteStringBackend('abcd'));
+      scope.transformResponse = function (baz) { return baz; };
+      scope.$digest();
+      $httpBackend.flush();
+
+      expect(scope.page).toEqual(0);
+    });
+
+
+  });
+
   describe('passive mode', function () {
     var template = '<bgf-pagination ' + [
       'collection="collection"', 'page="page"',
@@ -881,20 +950,6 @@
       $compile(template)(scope);
       scope.$digest();
       $httpBackend.flush(1);
-      $httpBackend.verifyNoOutstandingRequest();
-    });
-  });
-
-  describe('single passive mode', function () {
-    var template = '<bgf-pagination ' + [
-      'collection="collection"', 'page="page"',
-      'per-page="perPage"', 'url="\'/items\'"', 'passive="true"'
-    ].join(' ') + '/>';
-
-    it('prevents loading first time', function () {
-      $httpBackend.whenGET('/items').respond(500);
-      $compile(template)(scope);
-      scope.$digest();
       $httpBackend.verifyNoOutstandingRequest();
     });
   });

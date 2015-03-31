@@ -24,6 +24,12 @@
     return quantizedNumber(quantizedIndex(i));
   }
 
+  // don't overwrite default response transforms
+  function appendTransform(defaults, transform) {
+    defaults = angular.isArray(defaults) ? defaults : [defaults];
+    return (transform) ? defaults.concat(transform) : defaults;
+  }
+
   angular.module('bgf.paginateAnything', []).
 
     directive('bgfPagination', function () {
@@ -48,6 +54,7 @@
           reloadPage: '=?',
           size: '=?',
           passive: '@',
+          transformResponse: '=?',
 
           // directive -> app communication only
           numPages: '=?',
@@ -125,7 +132,8 @@
               headers: angular.extend(
                 {}, $scope.headers,
                 { 'Range-Unit': 'items', Range: [request.from, request.to].join('-') }
-              )
+              ),
+              transformResponse: appendTransform($http.defaults.transformResponse, $scope.transformResponse)
             }).success(function (data, status, headers, config) {
               var response = parseRange(headers('Content-Range'));
               if(status === 204 || (response && response.total === 0)) {
@@ -271,7 +279,21 @@
             }
           });
 
-          if($scope.passive === 'true') { return; }
+          $scope.$watch('transformResponse', function(newTransform, oldTransform) {
+            if($scope.passive === 'true') { return; }
+            if(!newTransform || !oldTransform) { return; }
+
+            // If applying a transform to returned data, it makes sense to start at the first page if changed
+            // Unfortunately it's not really possible to compare function equality
+            // In lieu of that, for now we'll compare string representations of them.
+            if(!angular.equals(newTransform.toString(), oldTransform.toString())) {
+              if($scope.page === 0){
+                $scope.reloadPage = true;
+              } else {
+                $scope.page = 0;
+              }
+            }
+          }, true);
 
           var pp = $scope.perPage || defaultPerPage;
 
@@ -311,7 +333,7 @@
 
 
   function parseRange(hdr) {
-    var m = hdr && hdr.match(/^(\d+)-(\d+)\/(\d+|\*)$/);
+    var m = hdr && hdr.match(/^(?:items )?(\d+)-(\d+)\/(\d+|\*)$/);
     if(m) {
       return {
         from: +m[1],
