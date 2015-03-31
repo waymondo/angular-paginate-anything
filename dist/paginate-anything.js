@@ -53,7 +53,7 @@
           linkGroupSize: '=?',
           reloadPage: '=?',
           size: '=?',
-          passive: '=?',
+          passive: '@',
           transformResponse: '=?',
           // directive -> app communication only
           numPages: '=?',
@@ -123,6 +123,7 @@
           };
 
           function requestRange(request) {
+            if($scope.passive === 'true') { return; }
             $scope.$emit('pagination:loadStart', request);
             $http({
               method: 'GET',
