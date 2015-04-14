@@ -55,7 +55,6 @@
           size: '=?',
           passive: '@',
           transformResponse: '=?',
-          // directive -> app communication only
           numPages: '=?',
           numItems: '=?',
           serverLimit: '=?',
