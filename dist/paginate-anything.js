@@ -53,7 +53,7 @@
           linkGroupSize: '=?',
           reloadPage: '=?',
           size: '=?',
-          passive: '@',
+          passive: '=?',
           transformResponse: '=?',
           numPages: '=?',
           numItems: '=?',
